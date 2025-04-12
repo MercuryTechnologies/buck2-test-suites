@@ -1,6 +1,10 @@
 echo "$GERRIT_PROJECT"
 echo "$GERRIT_BRANCH"
 
+if [ -d "ghc-persistent-worker" ]; then
+  rm -rf ghc-persistent-worker
+fi
+
 git clone ssh://jenkins@gerrit-server/ghc-persistent-worker
 
 cd ghc-persistent-worker
