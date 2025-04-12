@@ -1,5 +1,9 @@
-echo "$GERRIT_PROJECT"
-echo "$GERRIT_BRANCH"
+echo "-*-*-*-*- NOW IN ci_script -*-*-*-*-"
+
+echo "GERRIT_PROJECT = $GERRIT_PROJECT"
+echo "GERRIT_BRANCH = $GERRIT_BRANCH"
+echo "GERRIT_CHANGE_NUMBER = $GERRIT_CHANGE_NUMBER"
+echo "GERRIT_PATCHSET_NUMBER = $GERRIT_PATCHSET_NUMBER"
 
 if [ -d "ghc-persistent-worker" ]; then
   rm -rf ghc-persistent-worker
@@ -7,8 +11,17 @@ fi
 
 git clone ssh://jenkins@gerrit-server/ghc-persistent-worker
 
+if [ "$GERRIT_PROJECT" = "ghc-persistent-worker" ]; then
+  cd ghc-persistent-worker
+  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
+  cd ..
+else
+  cd ghc-persistent-worker
+  git checkout experiments
+  cd ..
+fi
+
 cd ghc-persistent-worker
-git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
 
 /nix/var/nix/profiles/default/bin/nix-shell --run "cabal update"
 /nix/var/nix/profiles/default/bin/nix-shell --run "cabal build buck-worker"
