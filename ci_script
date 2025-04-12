@@ -1,4 +1,4 @@
-echo "-*-*-*-*- NOW IN ci_script -*-*-*-*-"
+echo "-*-*-*-*-*- NOW IN ci_script -*-*-*-*-*-"
 
 echo "GERRIT_PROJECT = $GERRIT_PROJECT"
 echo "GERRIT_BRANCH = $GERRIT_BRANCH"
@@ -20,6 +20,49 @@ else
   git checkout experiments
   cd ..
 fi
+
+if [ -d "buck2" ]; then
+  rm -rf buck2
+fi
+
+git clone ssh://jenkins@gerrit-server/buck2
+
+if [ "$GERRIT_PROJECT" = "buck2" ]; then
+  cd buck2
+  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
+  cd ..
+else
+  cd buck2
+  git checkout mercury
+  cd ..
+fi
+
+
+cd buck2
+export CARGO_HOME=$PWD/.cargo
+nix develop . --extra-experimental-features nix-command --extra-experimental-features flakes --command cargo install --path=app/buck2
+cd ..
+
+cd buck2-test-suites
+
+if [ -d "buck2-prelude" ]; then
+  rm -rf buck2-prelude
+fi
+
+git clone ssh://jenkins@gerrit-server/buck2-prelude
+
+if [ "$GERRIT_PROJECT" = "buck2-prelude" ]; then
+  cd buck2-prelude
+  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
+  cd ..
+else
+  cd buck2-prelude
+  git checkout mercury
+  cd ..
+fi
+
+$CARGO_HOME/bin/buck2 build //:test
+cd ..
 
 cd ghc-persistent-worker
 
