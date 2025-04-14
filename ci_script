@@ -5,38 +5,29 @@ echo "GERRIT_BRANCH = $GERRIT_BRANCH"
 echo "GERRIT_CHANGE_NUMBER = $GERRIT_CHANGE_NUMBER"
 echo "GERRIT_PATCHSET_NUMBER = $GERRIT_PATCHSET_NUMBER"
 
-if [ -d "ghc-persistent-worker" ]; then
-  rm -rf ghc-persistent-worker
-fi
 
-git clone ssh://jenkins@gerrit-server/ghc-persistent-worker
+function git_checkout {
 
-if [ "$GERRIT_PROJECT" = "ghc-persistent-worker" ]; then
-  cd ghc-persistent-worker
-  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
-  cd ..
-else
-  cd ghc-persistent-worker
-  git checkout experiments
-  cd ..
-fi
+  if [ -d "$1" ]; then
+    rm -rf "$1"
+  fi
 
-if [ -d "buck2" ]; then
-  rm -rf buck2
-fi
+  git clone "ssh://jenkins@gerrit-server/$1"
 
-git clone ssh://jenkins@gerrit-server/buck2
+  if [ "$GERRIT_PROJECT" = "$1" ]; then
+    cd "$1"
+    git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
+    cd ..
+  else
+    cd "$1"
+    git checkout "$2"
+    cd ..
+  fi
+}
 
-if [ "$GERRIT_PROJECT" = "buck2" ]; then
-  cd buck2
-  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
-  cd ..
-else
-  cd buck2
-  git checkout mercury
-  cd ..
-fi
+git_checkout ghc-persistent-worker experiments
 
+git_checkout buck2 mercury
 
 cd buck2
 export CARGO_HOME=$PWD/.cargo
@@ -45,21 +36,7 @@ cd ..
 
 cd buck2-test-suites
 
-if [ -d "buck2-prelude" ]; then
-  rm -rf buck2-prelude
-fi
-
-git clone ssh://jenkins@gerrit-server/buck2-prelude
-
-if [ "$GERRIT_PROJECT" = "buck2-prelude" ]; then
-  cd buck2-prelude
-  git fetch origin refs/changes/$GERRIT_CHANGE_NUMBER/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
-  cd ..
-else
-  cd buck2-prelude
-  git checkout mercury
-  cd ..
-fi
+git_checkout buck2-prelude mercury
 
 $CARGO_HOME/bin/buck2 build //:test
 cd ..
