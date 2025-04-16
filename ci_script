@@ -7,35 +7,8 @@ echo "GERRIT_PATCHSET_NUMBER = $GERRIT_PATCHSET_NUMBER"
 
 nix run --extra-experimental-features nix-command --extra-experimental-features flakes ./buck2-test-suites/script#ci_script
 
-function git_checkout {
-
-  if [ -d "$1" ]; then
-    rm -rf "$1"
-  fi
-
-  git clone "ssh://jenkins@gerrit-server/$1"
-
-  if [ "$GERRIT_PROJECT" = "$1" ]; then
-    cd "$1"
-    git fetch origin refs/changes/${GERRIT_CHANGE_NUMBER: -2}/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER && git checkout FETCH_HEAD
-    cd ..
-  else
-    cd "$1"
-    git checkout "$2"
-    cd ..
-  fi
-}
-
-git_checkout ghc-persistent-worker experiments
-
-git_checkout buck2 mercury
-
 nix build --extra-experimental-features nix-command --extra-experimental-features flakes ./buck2#buck2
-
 cd buck2-test-suites
-
-git_checkout buck2-prelude mercury
-
 ../result/bin/buck2 build //:test
 cd ..
 

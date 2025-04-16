@@ -27,7 +27,11 @@
             buildInputs = [
               hsenv
               pkgs.nixfmt-rfc-style
+              pkgs.git
             ];
+            shellHook = ''
+              export PS1="\n[script:\w]$ \0"
+            '';
           };
         };
         packages = {
