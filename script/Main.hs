@@ -1,8 +1,9 @@
 module Main where
 
-import Control.Monad (when)
+import Control.Monad (void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Foldable (for_)
 import System.Directory
   ( doesDirectoryExist,
     getCurrentDirectory,
@@ -38,12 +39,35 @@ runOn dir action = do
   pure x
 
 data GerritEnv = GerritEnv
-  { gerritProject :: String
+  { gerritServerUrl :: String
+  , gerritProject :: String
   , gerritBranch :: String
   , gerritChangeNumber :: String
   , gerritPatchsetNumber :: String
   }
   deriving Show
+
+data RepoInfo = RepoInfo
+  { repoName :: String,
+    repoBranch :: String,
+    repoLocation :: FilePath
+  }
+  deriving Show
+
+-- | Relative positions of repos
+newtype RepoConfig = RepoConfig
+  { repoMap :: [RepoInfo]
+  }
+  deriving Show
+
+repoConfig :: RepoConfig
+repoConfig = RepoConfig
+  { repoMap =
+      [ RepoInfo {repoName = "buck2", repoBranch = "mercury", repoLocation =""}
+      , RepoInfo {repoName = "buck2-prelude", repoBranch = "experiments", repoLocation = "buck2-test-suites"}
+      , RepoInfo {repoName = "ghc-persistent-worker", repoBranch = "experiments", repoLocation = ""}
+      ]
+  }
 
 mkRefChange :: GerritEnv -> String
 mkRefChange env =
@@ -59,7 +83,7 @@ gitCheckout :: GerritEnv -> FilePath -> String -> String -> MaybeT IO ()
 gitCheckout env dir repo branch =
   runOn dir $ do
     let repoDir = dir </> repo
-        repoUrl = "ssh://jenkins@gerrit-server/" ++ repo
+        repoUrl = (gerritServerUrl env) </> repo
     liftIO $ do
        b <- doesDirectoryExist repoDir
        when b $ do
@@ -77,16 +101,14 @@ gitCheckout env dir repo branch =
 main :: IO ()
 main = do
   putStrLn "Haskell CI Script"
-  runMaybeT $ do
+  void $ runMaybeT $ do
+    gerritServerUrl <- MaybeT $ lookupEnv "GERRIT_SERVER_URL"
     gerritProject <- MaybeT $ lookupEnv "GERRIT_PROJECT"
     gerritBranch <- MaybeT $ lookupEnv "GERRIT_BRANCH"
     gerritChangeNumber <- MaybeT $ lookupEnv "GERRIT_CHANGE_NUMBER"
     gerritPatchsetNumber <- MaybeT $ lookupEnv "GERRIT_PATCHSET_NUMBER"
-    let env = GerritEnv {gerritProject, gerritBranch, gerritChangeNumber, gerritPatchsetNumber}
+    let env = GerritEnv {gerritServerUrl, gerritProject, gerritBranch, gerritChangeNumber, gerritPatchsetNumber}
 
     cwd <- liftIO getCurrentDirectory
-    gitCheckout env cwd "ghc-persistent-worker" "experiments"
-    gitCheckout env cwd "buck2" "mercury"
-    gitCheckout env (cwd </> "buck2-test-suites") "buck2-prelude" "mercury"
-
-  pure ()
+    for_ (repoMap repoConfig) $ \info ->
+      gitCheckout env (cwd </> (repoLocation info)) (repoName info) (repoBranch info)
