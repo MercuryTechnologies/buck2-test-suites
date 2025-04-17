@@ -16,6 +16,6 @@ cd ghc-persistent-worker
 
 export CABAL_DIR=$PWD/.cabal
 
-nix-shell --run "cabal update"
-nix-shell --run "cabal build buck-worker"
-nix-shell --run "cabal build buck-multiplex-worker"
+#nix-shell --run "cabal update"
+#nix-shell --run "cabal build buck-worker"
+#nix-shell --run "cabal build buck-multiplex-worker"
